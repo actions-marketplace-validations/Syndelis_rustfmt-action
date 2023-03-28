@@ -28,10 +28,19 @@ runs:
     - name: Run Rustfmt
       shell: bash
       run: cargo fmt --all --manifest-path=${{ inputs.manifest-path }} -- --color=never --emit=json > rustfmt-out.json
-    
+
     - name: Create Annotations
       shell: bash
       run: |
+
+        curl --request GET \
+          --url 'https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs' \
+          --header 'authorization: Bearer ${{ inputs.github_token }}' \
+          --header 'accept: application/vnd.github+json' \
+          --output jobs.json
+
+        CHECK_RUN_URL=$(jq -r '.jobs[] | select(.name == "${{ github.job }}") | .check_run_url' jobs.json)
+
         RUSTFMT_ERROR_COUNT=$(jq 'length' rustfmt-out.json)
 
         if [ $RUSTFMT_ERROR_COUNT -eq 0 ]; then
@@ -42,13 +51,11 @@ runs:
         echo "Found $RUSTFMT_ERROR_COUNT formatting errors."
 
         jq -f '${{ github.action_path }}/rustfmt-to-annotations.jq' \
-          --arg github_pr_head_sha "${{ github.event.pull_request.head.sha }}" \
-          --arg github_job_name "${{ github.job }}" \
           --arg pwd "${PWD}/" \
           rustfmt-out.json > annotations.json
 
-        curl --request POST \
-          --url 'https://api.github.com/repos/${{ github.repository }}/check-runs' \
+        curl --request PATCH \
+          --url "$CHECK_RUN_URL" \
           --header 'authorization: Bearer ${{ inputs.github_token }}' \
           --header 'content-type: application/json' \
           --header 'accept: application/vnd.github+json' \
