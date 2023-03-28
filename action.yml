@@ -1,8 +1,6 @@
 name: "Run Rustfmt and Annotate"
 description: |
-  Run `cargo fmt` and check Rust code.
-  Highlights places which are not correctly formatted via annotations.
-  Fork of "Check formatting of Rust code with rustfmt".
+  Fork of "Check formatting of Rust code with rustfmt" that writes the suggestions directly in the annotations.
 
 branding:
   icon: "align-left"
