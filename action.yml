@@ -59,6 +59,7 @@ runs:
           --header 'authorization: Bearer ${{ inputs.github_token }}' \
           --header 'content-type: application/json' \
           --header 'accept: application/vnd.github+json' \
-          --data @'annotations.json'
+          --data @'annotations.json' \
+          --output /dev/null
         
         exit 1
