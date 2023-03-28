@@ -1,0 +1,1 @@
+[.[] | .mismatches[] as $mis | {path: .name, start_line: $mis.original_begin_line, end_line: $mis.original_end_line, annotation_level: "failure", message: ("```diff\n-" + ($mis.original | split("\n") | join("\n-")) + "\n+" + ($mis.expected | split("\n") | join("\n+")) + "\n```")}]

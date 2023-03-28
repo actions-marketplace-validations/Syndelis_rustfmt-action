@@ -7,6 +7,9 @@ branding:
   color: "yellow"
 
 inputs:
+  github_token:
+    description: "Set to secrets.GITHUB_TOKEN"
+    required: true
   manifest-path:
     description: "Specify the --manifest-path argument to rustfmt"
     required: false
@@ -15,42 +18,35 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Rustfmt Job Summary
+
+    - name: Install dependencies
+      uses: awalsh128/cache-apt-pkgs-action@v1
+      with:
+        packages: jq curl
+        version: 1.0
+
+    - name: Run Rustfmt
+      shell: bash
+      run: cargo fmt --all --manifest-path=${{ inputs.manifest-path }} -- --color=never --emit=json > rustfmt-out.json
+    
+    - name: Create Annotations
       shell: bash
       run: |
-        # Run cargo and store the original output
-        CARGO_STATUS=0
-        CARGO_OUTPUT=$(cargo fmt --all --manifest-path=${{ inputs.manifest-path }} -- --color=always --check 2>/dev/null) || CARGO_STATUS=$?
+        RUSTFMT_ERROR_COUNT=$(jq 'length' rustfmt-out.json)
 
-        if [ ${CARGO_STATUS} -eq 0 ]; then
-            cat <<MARKDOWN_INTRO >> $GITHUB_STEP_SUMMARY
-        # Rustfmt Results
-
-        The code is formatted perfectly!
-        MARKDOWN_INTRO
-        else
-            cat <<MARKDOWN_INTRO >> $GITHUB_STEP_SUMMARY
-        # Rustfmt Results
-
-        \`cargo fmt\` reported formatting errors in the following locations.
-        You can fix them by executing the following command and committing the changes.
-        \`\`\`bash
-        cargo fmt --all
-        \`\`\`
-        MARKDOWN_INTRO
-
-            echo "${CARGO_OUTPUT}" |
-                # Strip color codes
-                sed 's/\x1B\[[0-9;]*[A-Za-z]//g' |
-                # Strip (some) cursor movements
-                sed 's/\x1B.[A-G]//g' |
-                tr "\n" "\r" |
-                # Wrap each location into a HTML details
-                sed -E 's#Diff in ([^\r]*?) at line ([[:digit:]]+):\r((:?[ +-][^\r]*\r)+)#<details>\n<summary>\1:\2</summary>\n\n```diff\n\3```\n\n</details>\n\n#g' |
-                tr "\r" "\n" >> $GITHUB_STEP_SUMMARY
+        if [ $RUSTFMT_ERROR_COUNT -eq 0 ]; then
+          echo "No formatting errors found."
+          exit 0
         fi
 
-        # Print the original cargo message
-        echo "${CARGO_OUTPUT}"
-        # Exit with the same status as cargo
-        exit "${CARGO_STATUS}"
+        echo "Found $RUSTFMT_ERROR_COUNT formatting errors."
+
+        jq -f '${{ github.action_path }}/rustfmt-to-annotations.jq' rustfmt-out.json | jq '{name: "Rustfmt Check", head_sha: "${{ inputs.commit_sha }}", output: .[0:50]}' > annotations.json
+
+        curl -L \
+        -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer ${{ inputs.github_token }}"\
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        https://api.github.com/repos/${{ github.repository }}/check-runs \
+        -d @annotations.json
