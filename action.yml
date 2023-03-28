@@ -43,7 +43,7 @@ runs:
 
         jq -f '${{ github.action_path }}/rustfmt-to-annotations.jq' \
           --arg github_pr_head_sha "${{ github.event.pull_request.head.sha }}" \
-          --arg pwd "${PWD}" \
+          --arg pwd "${PWD}/" \
           rustfmt-out.json > annotations.json
 
         curl --request POST \
