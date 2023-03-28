@@ -41,7 +41,7 @@ runs:
 
         echo "Found $RUSTFMT_ERROR_COUNT formatting errors."
 
-        jq -f '${{ github.action_path }}/rustfmt-to-annotations.jq' rustfmt-out.json | jq '{name: "Rustfmt Check", head_sha: "${{ inputs.commit_sha }}", output: .[0:50]}' > annotations.json
+        jq -f '${{ github.action_path }}/rustfmt-to-annotations.jq' rustfmt-out.json | jq '{name: "Rustfmt Check", head_sha: "${{ github.sha }}", output: { title: "Rustfmt Results", summary: "This action has included some annotations about format changes you need to make.", annotations: .[0:50] }}' > annotations.json
 
         curl --request POST \
           --url 'https://api.github.com/repos/${{ github.repository }}/check-runs' \
