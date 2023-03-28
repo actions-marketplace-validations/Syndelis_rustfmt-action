@@ -1,11 +1,11 @@
-# Run `rustfmt`
+# Run `rustfmt` — Annotations fork
 
-Run `cargo fmt --all` and report all formatting differences in a nice overview.
+## About the fork
+
+This fork makes it so that annotations include their own diff, rather than having a summary with all the diffs. At the moment, it seems that Annoations can't use GH-Flavoured Markdown, but I decided to leave the code block just in case it changes in the future.
+
+Run `cargo fmt --all` and report all formatting differences block-by-block.
 It works best in combination with [`actions-rust-lang/setup-rust-toolchain`] for [problem matcher] highlighting.
-
-Execution Summary:
-
-![The action reports any formatting issues found by rustfmt.](./imgs/rustfmt-results.png)
 
 Problem Matcher:
 
@@ -30,18 +30,19 @@ jobs:
         with:
           components: rustfmt
       - name: Rustfmt Check
-        uses: actions-rust-lang/rustfmt@v1
+        uses: Syndelis/rustfmt-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Inputs
 
-All inputs are optional.
-If a [toolchain file](https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file) (i.e., `rust-toolchain` or `rust-toolchain.toml`) is found in the root of the repository, it takes precedence.
-All input values are ignored if a toolchain file exists.
+| Name            | Description                                                                  | Default                                            |
+| --------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| `github_token`  | Your GitHub token with enough permissions to read repos and edit check runs. | **None**. Supply with `${{ secrets.GITHUB_TOKEN }}`|
+| `manifest-path` | Path to the `Cargo.toml` file, by default in the root of the repository.     | ./Cargo.toml                                       |
 
-| Name            | Description                                                              | Default      |
-| --------------- | ------------------------------------------------------------------------ | ------------ |
-| `manifest-path` | Path to the `Cargo.toml` file, by default in the root of the repository. | ./Cargo.toml |
+If a [toolchain file](https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file) (i.e., `rust-toolchain` or `rust-toolchain.toml`) is found in the root of the repository, it takes precedence over `manifest-path`.
 
 [`actions-rust-lang/setup-rust-toolchain`]: https://github.com/actions-rust-lang/setup-rust-toolchain
 [problem matcher]: https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md
